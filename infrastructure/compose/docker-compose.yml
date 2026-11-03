@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: careflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: careflow_admin
+      POSTGRES_PASSWORD: careflow_dev_password
+      POSTGRES_DB: careflow_metadata
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+      - careflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careflow_admin -d careflow_metadata"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+  minio:
+    image: minio/minio:latest
+    container_name: careflow-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: miniopassword
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - careflow_minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+volumes:
+  careflow_postgres_data:
+  careflow_minio_data:
