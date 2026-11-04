@@ -24,6 +24,8 @@ from contracts.canonical_observation import (
     Lineage,
     SupersessionState,
 )
+from contracts.canonical_patient import CanonicalPatient
+from contracts.canonical_encounter import CanonicalEncounter
 from contracts.mapping_proposal import MappingProposal, MappingDSL, ProposalDisposition
 from contracts.approval import Approval, DecisionType
 from contracts.study_release import StudyRelease, ReleaseState
@@ -51,6 +53,8 @@ __all__ = [
     "DispositonType",
     "PipelineRun",
     "RunState",
+    "CanonicalPatient",
+    "CanonicalEncounter",
     "CanonicalObservation",
     "OriginalObservation",
     "NormalizedObservation",

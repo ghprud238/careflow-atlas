@@ -96,3 +96,20 @@ CREATE TABLE IF NOT EXISTS careflow_control.pipeline_runs (
     started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMPTZ
 );
+
+-- Study Releases Ledger (ADR-0005 & Section 8)
+CREATE TABLE IF NOT EXISTS careflow_control.study_releases (
+    release_id VARCHAR(128) PRIMARY KEY,
+    study_id VARCHAR(128) NOT NULL,
+    owner VARCHAR(128) NOT NULL,
+    cohort_digest VARCHAR(128) NOT NULL,
+    fixed_reference_date VARCHAR(32) NOT NULL,
+    provider_table_snapshot_bundle JSONB NOT NULL,
+    quality_privacy_versions JSONB NOT NULL,
+    code_digest VARCHAR(128) NOT NULL,
+    output_checksums JSONB NOT NULL,
+    active_state VARCHAR(32) NOT NULL CHECK (active_state IN ('active', 'revoked')),
+    revoked_at TIMESTAMPTZ,
+    revocation_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

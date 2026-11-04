@@ -66,10 +66,12 @@ test-unit:
 	$(PYTEST) tests/contracts/ tests/unit/ -v
 
 fixtures:
-	@echo "[Phase 1] Synthea fixture generation is scheduled for Phase 1."
+	@echo "==> Generating synthetic healthcare fixtures for Provider A..."
+	$(PYTHON) fixtures/generation/synthetic_provider_a.py
 
 test-integration:
-	@echo "[Phase 1+] Integration tests scheduled for Phase 1."
+	@echo "==> Running Phase 1 integration test suite..."
+	$(PYTEST) tests/integration/ -v
 
 test-security:
 	@echo "[Phase 4+] Security tests scheduled for Phase 4."
