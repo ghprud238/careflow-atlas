@@ -74,13 +74,20 @@ test-integration:
 	$(PYTEST) tests/integration/ -v
 
 test-security:
-	@echo "[Phase 4+] Security tests scheduled for Phase 4."
+	@echo "==> Running Phase 4 security and isolation test suite..."
+	$(PYTEST) tests/security/ -v
 
 test-recovery:
-	@echo "[Phase 5+] Recovery tests scheduled for Phase 5."
+	@echo "==> Running Phase 5 crash recovery and shadow migration test suite..."
+	$(PYTEST) tests/recovery/ -v
+
+test-benchmarks:
+	@echo "==> Running Phase 5 performance and scale benchmarks..."
+	$(PYTEST) tests/benchmarks/ -v -s
 
 demo:
-	@echo "[Phase 6+] End-to-end demo script scheduled for Phase 6."
+	@echo "==> Running CareFlow Atlas 10-Minute End-to-End Architectural Walkthrough..."
+	$(PYTHON) demo/automated_demo.py
 
 clean:
 	rm -rf .pytest_cache .ruff_cache __pycache__ tests/**/__pycache__ packages/**/__pycache__

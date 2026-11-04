@@ -83,15 +83,37 @@ make bootstrap
 # 2. Start PostgreSQL 16 & MinIO containers and create initial buckets
 make up
 
-# 3. Run contract invariant and security test suite
-make test-contracts
+# 3. Generate deterministic synthetic data fixtures (FHIR & CSV)
+make fixtures
 
 # 4. Run PySpark + Apache Iceberg write/merge/snapshot smoke test
 make smoke
 
-# 5. Stop local infrastructure without deleting data volumes
+# 5. Run full test suites
+make test-unit         # Unit tests (Adapters, Agent State Machine, DSL, Drift)
+make test-contracts    # Contract invariants (Conservation laws, WORM manifest, Hashing)
+make test-integration  # Multi-provider federation, flagship scenario, pipeline
+make test-security     # Tenant isolation, RBAC, hash-chained audit ledger, export signing
+make test-recovery     # Crash recovery, conflict denial, shadow candidate replay
+make test-benchmarks   # High-volume scale & throughput benchmark
+
+# 6. Run 10-Minute End-to-End Architectural Walkthrough Demo
+make demo
+
+# 7. Stop local infrastructure without deleting data volumes
 make down
 ```
+
+---
+
+## Architectural Documentation & Runbooks
+
+- [Architecture Specification](docs/architecture.md): Complete end-to-end data/control plane diagrams and storage models.
+- [Threat Model & Security](docs/threat-model.md): Comprehensive STRIDE analysis and sandboxed DSL security.
+- [Benchmark Methodology & Results](docs/benchmark-methodology.md): Throughput, parsing scale, and row conservation measurements.
+- [Operations Runbook](docs/runbooks/operations_runbook.md): Manifest ingestion, quarantine resolution, reviewer workflows.
+- [Disaster Recovery Runbook](docs/runbooks/disaster_recovery.md): Iceberg snapshot rollback, PITR recovery, MinIO re-drive.
+- [Architectural Decision Records (ADRs)](docs/adr/): ADR-0001 through ADR-0012.
 
 ---
 
@@ -99,22 +121,22 @@ make down
 
 ```
 careflow-atlas/
+├── demo/                    # 10-Minute automated architectural walkthrough
 ├── apps/                    # User-facing applications (API, Console)
-├── services/                # Control plane services (Agent, MCP tools, Executor)
+├── services/                # Control plane services (Agent, MCP tools, Audit, RBAC, Executor)
 ├── pipelines/
-│   ├── spark/               # Batch transformation jobs & smoke tests
-│   ├── adapters/            # Ingestion adapters (FHIR, CSV)
+│   ├── spark/               # Batch transformation jobs & cohort release jobs
+│   ├── adapters/            # Ingestion adapters (FHIR, Delimited CSV)
 │   └── dags/                # Airflow workflow DAGs
 ├── packages/
 │   ├── contracts/           # Pydantic data models & explicit errors
 │   ├── configuration/       # Layered configuration & provider policies
-│   ├── mapping-dsl/         # Declarative mapping DSL interpreter
+│   ├── mapping-dsl/         # Declarative allowlist mapping DSL interpreter & registry
 │   └── telemetry/           # OpenTelemetry spans & audit loggers
-├── fixtures/                # Synthetic data fixtures & mutation suites
-├── evaluations/             # Agent benchmarking test cases & baselines
-├── tests/                   # Contract, unit, integration, and security tests
+├── fixtures/                # Synthetic data fixtures (Provider A FHIR & Provider B CSV)
+├── tests/                   # Contracts, unit, integration, security, recovery, benchmarks
 ├── infrastructure/compose/  # Docker Compose, PostgreSQL schema init, MinIO
-├── docs/                    # Master spec, ADRs, runbooks, status
+├── docs/                    # Master spec, ADRs, runbooks, architecture, threat model
 ├── Makefile                 # Canonical CLI target interfaces
 └── pyproject.toml           # Locked dependencies & tool settings
 ```
@@ -124,11 +146,11 @@ careflow-atlas/
 ## Implementation Status
 
 - [x] **Phase 0:** Compatible locked stack, typed contracts, local infrastructure, Iceberg v2 write/merge/snapshot smoke test.
-- [ ] **Phase 1:** Single synthetic FHIR provider (Patient, Encounter, Observation), canonical persistence, duplicate-safe replay.
-- [ ] **Phase 2:** Agent investigation control plane, scoped MCP server, human approval workflow, scoped replay.
-- [ ] **Phase 3:** CSV adapter, clinical updates/deletes, source ordering convergence, schema drift.
-- [ ] **Phase 4:** Isolation tests, approval mutation defense, controlled export gateway, React console.
-- [ ] **Phase 5:** Crash recovery, benchmark evaluation against 3 baselines, shadow migration.
-- [ ] **Phase 6:** Complete portfolio package, runbooks, demo recording.
+- [x] **Phase 1:** Single synthetic FHIR provider (Patient, Encounter, Observation), canonical persistence, duplicate-safe replay.
+- [x] **Phase 2:** Agent investigation control plane, scoped MCP server, human approval workflow, scoped replay.
+- [x] **Phase 3:** CSV adapter, clinical updates/deletes, source ordering convergence, schema drift.
+- [x] **Phase 4:** Isolation tests, approval mutation defense, controlled export gateway, human review console CLI.
+- [x] **Phase 5:** Crash recovery, benchmark evaluation against scale targets, shadow migration.
+- [x] **Phase 6:** Complete portfolio package, runbooks, architecture, threat model, automated 10-minute demo.
 
 See [`docs/implementation-status.md`](docs/implementation-status.md) for detailed progress.

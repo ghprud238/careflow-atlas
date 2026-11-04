@@ -57,6 +57,21 @@ CREATE TABLE IF NOT EXISTS careflow_audit.audit_events (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS careflow_audit.chained_audit_ledger (
+    sequence_num BIGSERIAL PRIMARY KEY,
+    event_id UUID NOT NULL,
+    actor_or_service VARCHAR(128) NOT NULL,
+    action VARCHAR(128) NOT NULL,
+    resource VARCHAR(256) NOT NULL,
+    scope VARCHAR(128) NOT NULL,
+    outcome VARCHAR(32) NOT NULL,
+    correlation_id VARCHAR(128) NOT NULL,
+    previous_hash VARCHAR(64) NOT NULL,
+    entry_hash VARCHAR(64) NOT NULL UNIQUE,
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_audit_correlation ON careflow_audit.audit_events(correlation_id);
 CREATE INDEX IF NOT EXISTS idx_audit_scope ON careflow_audit.audit_events(scope);
 CREATE INDEX IF NOT EXISTS idx_audit_actor ON careflow_audit.audit_events(actor_or_service);
