@@ -113,3 +113,43 @@ CREATE TABLE IF NOT EXISTS careflow_control.study_releases (
     revocation_reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Mapping Proposals & Approvals (Section 8, 11)
+CREATE TABLE IF NOT EXISTS careflow_control.mapping_proposals (
+    proposal_id VARCHAR(128) PRIMARY KEY,
+    proposal_hash VARCHAR(128) NOT NULL UNIQUE,
+    provider_id VARCHAR(64) NOT NULL,
+    source_contract_version VARCHAR(64) NOT NULL,
+    typed_dsl JSONB NOT NULL,
+    candidates JSONB DEFAULT '[]'::jsonb,
+    terminology_snapshot VARCHAR(64) NOT NULL,
+    evidence_refs JSONB DEFAULT '[]'::jsonb,
+    safe_test_results JSONB DEFAULT '{}'::jsonb,
+    prompt_version VARCHAR(64) NOT NULL,
+    model_version VARCHAR(64) NOT NULL,
+    disposition VARCHAR(32) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS careflow_control.approvals (
+    approval_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    proposal_hash VARCHAR(128) NOT NULL,
+    authorized_reviewer VARCHAR(128) NOT NULL,
+    reviewer_role VARCHAR(64) NOT NULL,
+    provider_scope VARCHAR(64) NOT NULL,
+    evidence_version VARCHAR(64) NOT NULL,
+    expected_registry_version VARCHAR(64) NOT NULL,
+    expiry TIMESTAMPTZ NOT NULL,
+    decision VARCHAR(32) NOT NULL CHECK (decision IN ('approved', 'rejected')),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS careflow_control.mapping_registry (
+    registry_version VARCHAR(64) PRIMARY KEY,
+    previous_version VARCHAR(64),
+    rules JSONB NOT NULL,
+    approval_hash VARCHAR(128),
+    promoted_by VARCHAR(128) NOT NULL,
+    promoted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);

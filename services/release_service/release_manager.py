@@ -100,3 +100,39 @@ class ReleaseManager:
                 affected = cur.rowcount
                 conn.commit()
                 return affected > 0
+
+    def compare_releases(self, release_a: StudyRelease, release_b: StudyRelease) -> Dict[str, Any]:
+        """Compare two study releases and report delta across snapshots and checksums."""
+        snapshot_diff = {}
+        all_providers = set(release_a.provider_table_snapshot_bundle.keys()) | set(release_b.provider_table_snapshot_bundle.keys())
+        for p in all_providers:
+            bundle_a = release_a.provider_table_snapshot_bundle.get(p, {})
+            bundle_b = release_b.provider_table_snapshot_bundle.get(p, {})
+            if isinstance(bundle_a, dict) and isinstance(bundle_b, dict):
+                all_tables = set(bundle_a.keys()) | set(bundle_b.keys())
+                for tbl in all_tables:
+                    s_a = bundle_a.get(tbl)
+                    s_b = bundle_b.get(tbl)
+                    if s_a != s_b:
+                        snapshot_diff[f"{p}.{tbl}"] = {"previous_snapshot": s_a, "current_snapshot": s_b}
+                        snapshot_diff[tbl] = {"previous_snapshot": s_a, "current_snapshot": s_b}
+            else:
+                if bundle_a != bundle_b:
+                    snapshot_diff[p] = {"previous_snapshot": bundle_a, "current_snapshot": bundle_b}
+
+        checksum_diff = {
+            "release_a_digest": release_a.cohort_digest,
+            "release_b_digest": release_b.cohort_digest,
+            "digest_changed": release_a.cohort_digest != release_b.cohort_digest,
+            "files_a": list(release_a.output_checksums.keys()),
+            "files_b": list(release_b.output_checksums.keys()),
+        }
+
+        return {
+            "base_release_id": release_a.release_id,
+            "target_release_id": release_b.release_id,
+            "snapshot_differences": snapshot_diff,
+            "checksum_differences": checksum_diff,
+            "comparison_state": "materially_updated" if checksum_diff["digest_changed"] else "identical",
+        }
+

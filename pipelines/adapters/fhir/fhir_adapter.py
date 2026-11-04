@@ -124,6 +124,13 @@ class FHIRAdapter:
                     envelope.disposition = "quarantined"
                     envelope.quarantine_reasons.append(f"Malformed numeric valueQuantity value: {val}")
 
+            # 4. Unreviewed terminology check
+            codings = raw.get("code", {}).get("coding", [])
+            orig_code = codings[0].get("code") if codings else None
+            if orig_code and orig_code not in REVIEWED_CATALOG:
+                envelope.disposition = "quarantined"
+                envelope.quarantine_reasons.append(f"Unreviewed observation code: {orig_code}")
+
         elif envelope.resource_type == "Encounter":
             subject_ref = raw.get("subject", {}).get("reference", "")
             if not subject_ref or not subject_ref.startswith("Patient/"):
