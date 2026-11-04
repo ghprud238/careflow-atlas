@@ -1,7 +1,7 @@
 # CareFlow Atlas — Benchmark Methodology & Scale Report
 
 ## 1. Benchmarking Objectives & Scope
-The purpose of the CareFlow Atlas benchmarking suite ([`tests/benchmarks/test_throughput.py`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/tests/benchmarks/test_throughput.py)) is to measure:
+The purpose of the CareFlow Atlas benchmarking suite ([`tests/benchmarks/test_throughput.py`](../tests/benchmarks/test_throughput.py)) is to measure:
 1. **Bronze Landing Latency:** End-to-end WORM landing and cryptographic SHA-256 digest computation in object storage.
 2. **Adapter Parsing Throughput:** In-memory parsing and schema validation of heterogeneous clinical resources (FHIR R4 JSON & multi-table delimited CSV) into normalized `ResourceEnvelope` carriers.
 3. **PySpark Iceberg MERGE Scalability:** Apache Iceberg v2 atomic merge-on-read transaction latency across partitioned silver tables (`patients`, `encounters`, `observations`).

@@ -35,13 +35,13 @@ CareFlow Atlas operates a decoupled lakehouse architecture:
 ### 3.1 Unmapped Code Alert Flow
 When unmapped clinical codes (e.g. local EHR lab codes like `GLUC-RANDOM-POC` or `PB-GLUC`) arrive:
 1. Records are safely diverted to `careflow_quarantine.quarantined_records`.
-2. Schema drift detector or scheduled triage launches [`InvestigationAgent`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/agent/investigation_agent.py).
-3. The agent is hard-budgeted to $\le 8$ tool calls against [`ScopedMCPTools`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/mcp_tools/tool_server.py).
+2. Schema drift detector or scheduled triage launches [`InvestigationAgent`](../../services/agent/investigation_agent.py).
+3. The agent is hard-budgeted to $\le 8$ tool calls against [`ScopedMCPTools`](../../services/mcp_tools/tool_server.py).
 4. All tool interactions receive **payload-free aggregate summaries** (`contains_phi=False`), ensuring zero PHI enters LLM prompts.
-5. The agent either produces a deterministic [`MappingProposal`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/packages/contracts/src/contracts/mapping_proposal.py) or safely abstains (`abstain_investigation`).
+5. The agent either produces a deterministic [`MappingProposal`](../../packages/contracts/src/contracts/mapping_proposal.py) or safely abstains (`abstain_investigation`).
 
 ### 3.2 Clinical Reviewer Workflow
-1. Reviewers log in via [`ReviewConsole`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/console/review_console.py) CLI:
+1. Reviewers log in via [`ReviewConsole`](../../services/console/review_console.py) CLI:
    ```bash
    python -m services.console.review_console inspect <PROPOSAL_ID>
    ```
@@ -54,14 +54,14 @@ When unmapped clinical codes (e.g. local EHR lab codes like `GLUC-RANDOM-POC` or
    ```bash
    python -m services.console.review_console approve <PROPOSAL_ID> --user dr_vance --role lead_pathologist
    ```
-4. Signed [`Approval`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/packages/contracts/src/contracts/approval.py) binds cryptographically to the proposal hash and registers into [`MappingRegistry`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/packages/mapping_dsl/registry.py).
+4. Signed [`Approval`](../../packages/contracts/src/contracts/approval.py) binds cryptographically to the proposal hash and registers into [`MappingRegistry`](../../packages/mapping_dsl/registry.py).
 
 ---
 
 ## 4. Scoped Replay Execution
 
 To drain quarantined records without lake-wide reprocessing:
-1. Trigger [`ReplayExecutor`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/mapping_executor/executor.py):
+1. Trigger [`ReplayExecutor`](../../services/mapping_executor/executor.py):
    ```python
    executor = ReplayExecutor(spark=spark, registry=registry)
    executor.replay_quarantined_scope(

@@ -22,25 +22,25 @@
 
 ## 2. Completed Requirement IDs & Feature Matrix
 
-- **FR-01 (Extensible Adapter):** Implemented [`FHIRAdapter`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/pipelines/adapters/fhir/fhir_adapter.py) and [`CSVAdapter`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/pipelines/adapters/csv/csv_adapter.py) parsing both FHIR R4 JSON and Delimited CSV/pipe feeds into standard `ResourceEnvelope` carriers.
+- **FR-01 (Extensible Adapter):** Implemented [`FHIRAdapter`](../pipelines/adapters/fhir/fhir_adapter.py) and [`CSVAdapter`](../pipelines/adapters/csv/csv_adapter.py) parsing both FHIR R4 JSON and Delimited CSV/pipe feeds into standard `ResourceEnvelope` carriers.
 - **FR-02 (Verified Immutable Input):** Bronze landing protocol verifies byte count and SHA-256 before marking manifest ready; duplicate delivery flagged, conflict rejected.
 - **FR-03 (Supported Resource Parsing):** Heterogeneous resources parsed to typed envelopes with preserved clinical status, units, and original/normalized fields.
 - **FR-04 (Provenance):** Every canonical patient, encounter, and observation retains `Lineage(manifest_id, run_id, resource_envelope_hash)`.
 - **FR-05 (Safe Quarantine):** Malformed numeric representations, missing patient references, and unreviewed codes safely quarantined to `careflow_quarantine.quarantined_records` with attributable findings.
 - **FR-06 (Corrections & Retractions):** Monotonic sequence update verified in Iceberg Silver tables (`sequence = 2` supersedes `sequence = 1`); clinical retractions (`_operation = 'delete'`) update `supersession_state = 'deleted'`.
-- **FR-07 (Agent Investigation Control Plane):** [`InvestigationAgent`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/agent/investigation_agent.py) operates state machine with hard reliability budget ($\le 8$ tool calls) and fail-closed abstention.
-- **FR-08 (Scoped MCP Tools):** [`ScopedMCPTools`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/mcp_tools/tool_server.py) enforces caller scope checks (denying cross-provider requests with `CrossProviderAccessError`) and privacy-preserving aggregate profiles (`contains_phi=False`).
+- **FR-07 (Agent Investigation Control Plane):** [`InvestigationAgent`](../services/agent/investigation_agent.py) operates state machine with hard reliability budget ($\le 8$ tool calls) and fail-closed abstention.
+- **FR-08 (Scoped MCP Tools):** [`ScopedMCPTools`](../services/mcp_tools/tool_server.py) enforces caller scope checks (denying cross-provider requests with `CrossProviderAccessError`) and privacy-preserving aggregate profiles (`contains_phi=False`).
 - **FR-09 (Safe Replay & Duplicate Protection):** Scoped replay drains quarantined records into Silver without duplicating rows; second execution finds 0 records to replay and maintains identical logical counts.
-- **FR-10 (Complete Releases):** [`StudyRelease`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/packages/contracts/src/contracts/study_release.py) binds immutable snapshot bundle across single and federated providers `{provider: {table: snapshot_id}}`.
-- **FR-11 (Exact Proposal Hash Authorization):** [`Approval`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/packages/contracts/src/contracts/approval.py) artifact binds to exact SHA-256 hash of [`MappingProposal`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/packages/contracts/src/contracts/mapping_proposal.py); enforces expected registry version and expiration.
+- **FR-10 (Complete Releases):** [`StudyRelease`](../packages/contracts/src/contracts/study_release.py) binds immutable snapshot bundle across single and federated providers `{provider: {table: snapshot_id}}`.
+- **FR-11 (Exact Proposal Hash Authorization):** [`Approval`](../packages/contracts/src/contracts/approval.py) artifact binds to exact SHA-256 hash of [`MappingProposal`](../packages/contracts/src/contracts/mapping_proposal.py); enforces expected registry version and expiration.
 - **FR-12 (Reproducibility & Snapshot Isolation):** Federated cohort research job queries pinned snapshot bundles across providers, evaluates adult criteria, lookback window, and deterministic tie-breaking. Retracted records are strictly excluded from the cohort.
-- **FR-13 (Targeted Scoped Replay):** [`ReplayExecutor`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/mapping_executor/executor.py) extracts raw records from Bronze, applies newly promoted DSL rule, merges into Silver, and drains from quarantine.
+- **FR-13 (Targeted Scoped Replay):** [`ReplayExecutor`](../services/mapping_executor/executor.py) extracts raw records from Bronze, applies newly promoted DSL rule, merges into Silver, and drains from quarantine.
 - **FR-14 (Pinned Configuration & Conservation):** Conservation invariant strictly verified: $N_{input} == N_{accepted} + N_{duplicate} + N_{quarantined} + N_{excluded}$.
-- **FR-15 (Schema Drift Detection):** [`DriftDetector`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/drift/drift_detector.py) evaluates column headers against pinned schema contracts, classifying added columns (`investigate_agent`) and missing required columns (`quarantine_batch`).
+- **FR-15 (Schema Drift Detection):** [`DriftDetector`](../services/drift/drift_detector.py) evaluates column headers against pinned schema contracts, classifying added columns (`investigate_agent`) and missing required columns (`quarantine_batch`).
 - **FR-16 (Tenant Isolation):** Multi-tenant PostgreSQL database schemas and user permissions (`provider_a_role` cannot access `provider_b_isolated`).
-- **FR-17 (Cryptographic Audit Ledger):** Hash-chained append-only audit ledger ($H_i = \text{SHA256}(H_{i-1} \parallel \text{payload})$) with tamper detection via [`AuditService`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/audit/audit_service.py).
-- **FR-18 (RBAC Approval Authorization):** [`RBACService`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/authorization/rbac_service.py) enforces verified clinical reviewer roles (`lead_pathologist`, `terminology_reviewer`) and provider authority.
-- **FR-19 (Controlled Export Service):** [`ControlledExportService`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/export/export_service.py) verifies dataset checksums and signs recipient export packages with HMAC-SHA256 attestations.
+- **FR-17 (Cryptographic Audit Ledger):** Hash-chained append-only audit ledger ($H_i = \text{SHA256}(H_{i-1} \parallel \text{payload})$) with tamper detection via [`AuditService`](../services/audit/audit_service.py).
+- **FR-18 (RBAC Approval Authorization):** [`RBACService`](../services/authorization/rbac_service.py) enforces verified clinical reviewer roles (`lead_pathologist`, `terminology_reviewer`) and provider authority.
+- **FR-19 (Controlled Export Service):** [`ControlledExportService`](../services/export/export_service.py) verifies dataset checksums and signs recipient export packages with HMAC-SHA256 attestations.
 - **FR-20 (Resilience, Recovery & Benchmarks):** Verified crash recovery, shadow candidate replay evaluation, and high-volume throughput benchmarks ($> 112,000$ recs/sec parsing).
 
 ---
@@ -62,12 +62,12 @@
 ## 4. Key Architectural Deliverables
 
 1. **Architecture & Threat Model:**
-   - [`docs/architecture.md`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/docs/architecture.md): Complete end-to-end data/control plane diagrams and storage models.
-   - [`docs/threat-model.md`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/docs/threat-model.md): Comprehensive STRIDE analysis and sandboxed DSL security.
+   - [`docs/architecture.md`](../docs/architecture.md): Complete end-to-end data/control plane diagrams and storage models.
+   - [`docs/threat-model.md`](../docs/threat-model.md): Comprehensive STRIDE analysis and sandboxed DSL security.
 2. **Operational Readiness:**
-   - [`docs/runbooks/operations_runbook.md`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/docs/runbooks/operations_runbook.md): Manifest ingestion, quarantine resolution, reviewer workflows.
-   - [`docs/runbooks/disaster_recovery.md`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/docs/runbooks/disaster_recovery.md): Iceberg snapshot rollback, PITR recovery, MinIO re-drive.
+   - [`docs/runbooks/operations_runbook.md`](../docs/runbooks/operations_runbook.md): Manifest ingestion, quarantine resolution, reviewer workflows.
+   - [`docs/runbooks/disaster_recovery.md`](../docs/runbooks/disaster_recovery.md): Iceberg snapshot rollback, PITR recovery, MinIO re-drive.
 3. **Scale & Performance:**
-   - [`docs/benchmark-methodology.md`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/docs/benchmark-methodology.md): Rigorous benchmarking methodology and measured results.
+   - [`docs/benchmark-methodology.md`](../docs/benchmark-methodology.md): Rigorous benchmarking methodology and measured results.
 4. **Architectural Decision Records (ADRs):**
-   - ADR-0001 through ADR-0012 documented and approved in [`docs/adr/`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/docs/adr/).
+   - ADR-0001 through ADR-0012 documented and approved in [`docs/adr/`](../docs/adr/).

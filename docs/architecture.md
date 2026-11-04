@@ -69,7 +69,7 @@ flowchart TD
 
 ### 2.2 Scoped MCP Tools & Control Plane Privacy
 - The agent does **not** query Iceberg or Postgres directly.
-- All investigation occurs through [`ScopedMCPTools`](file:///Users/dpcubed/.gemini/antigravity/scratch/careflow-atlas/services/mcp_tools/tool_server.py):
+- All investigation occurs through [`ScopedMCPTools`](../services/mcp_tools/tool_server.py):
   1. `get_schema_diff`: Column additions and contract differences.
   2. `lookup_term`: Canonical catalog lookup and approved alias retrieval.
   3. `get_safe_profile`: Aggregate value distributions, format patterns, and units (`contains_phi=False`).
