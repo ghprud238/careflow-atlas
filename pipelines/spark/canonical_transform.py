@@ -32,6 +32,7 @@ from contracts import (
     PipelineRun,
     SourceManifest,
 )
+from pipelines.adapters.csv.csv_adapter import CSVAdapter
 from pipelines.adapters.fhir.fhir_adapter import FHIRAdapter
 from services.ingest.manifest_manager import ManifestManager
 
@@ -185,15 +186,34 @@ class CanonicalPipeline:
             raise ValueError(f"Manifest '{manifest_id}' not found or not in ready state")
 
         payload_bytes = self.manifest_mgr.fetch_staged_payload(manifest.object_uri)
-        lines = [line.strip() for line in payload_bytes.decode("utf-8").split("\n") if line.strip()]
-
-        adapter = FHIRAdapter(provider=manifest.provider)
+        payload_str = payload_bytes.decode("utf-8").strip()
 
         envelopes = []
-        for line in lines:
-            raw_res = json.loads(line)
-            env = adapter.parse_resource_dict(raw_res, manifest_id=manifest_id, payload_uri=manifest.object_uri)
-            envelopes.append(env)
+
+        # Route to appropriate adapter based on feed and provider
+        if manifest.feed in ["csv", "pipe", "delimited"] or manifest.provider == "provider-b":
+            csv_adapter = CSVAdapter(provider=manifest.provider)
+            try:
+                parsed_json = json.loads(payload_str)
+                if isinstance(parsed_json, dict) and any(k.endswith(".csv") for k in parsed_json.keys()):
+                    if "patients.csv" in parsed_json:
+                        envelopes.extend(csv_adapter.parse_csv_content(parsed_json["patients.csv"], "Patient", manifest_id, manifest.object_uri))
+                    if "encounters.csv" in parsed_json:
+                        envelopes.extend(csv_adapter.parse_csv_content(parsed_json["encounters.csv"], "Encounter", manifest_id, manifest.object_uri))
+                    if "observations.csv" in parsed_json:
+                        envelopes.extend(csv_adapter.parse_csv_content(parsed_json["observations.csv"], "Observation", manifest_id, manifest.object_uri))
+                else:
+                    envelopes.extend(csv_adapter.parse_csv_content(payload_str, "Observation", manifest_id, manifest.object_uri))
+            except json.JSONDecodeError:
+                envelopes.extend(csv_adapter.parse_csv_content(payload_str, "Observation", manifest_id, manifest.object_uri))
+            adapter = csv_adapter
+        else:
+            adapter = FHIRAdapter(provider=manifest.provider)
+            lines = [line.strip() for line in payload_str.split("\n") if line.strip()]
+            for line in lines:
+                raw_res = json.loads(line)
+                env = adapter.parse_resource_dict(raw_res, manifest_id=manifest_id, payload_uri=manifest.object_uri)
+                envelopes.append(env)
 
         n_input = len(envelopes)
         quarantined = [e for e in envelopes if e.disposition == "quarantined"]

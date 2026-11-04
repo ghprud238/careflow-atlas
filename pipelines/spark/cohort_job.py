@@ -53,35 +53,58 @@ class CohortJob:
         self,
         study_id: str,
         owner: str,
-        provider: str,
-        snapshot_bundle: Dict[str, Dict[str, int]],
+        provider: Optional[str] = None,
+        snapshot_bundle: Dict[str, Dict[str, int]] = None,
         target_concept: str = "reviewed-catalog/concept-glucose",
         fixed_reference_date: str = "2026-11-01",
         lookback_days: int = 365,
         min_age: int = 18,
     ) -> StudyRelease:
-        """Execute Section 12 Research Cohort Selection."""
+        """Execute Section 12 Research Cohort Selection across single or federated providers."""
         release_id = f"rel-{uuid.uuid4().hex[:12]}"
+        snapshot_bundle = snapshot_bundle or {}
 
-        # 1. Resolve Pinned Snapshot IDs
-        prov_snaps = snapshot_bundle.get(provider, {})
-        pat_snap = prov_snaps.get("patients")
-        obs_snap = prov_snaps.get("observations")
+        # 1. Determine target providers
+        if provider:
+            target_providers = [provider]
+        else:
+            target_providers = list(snapshot_bundle.keys())
 
-        if not pat_snap or not obs_snap:
-            raise ValueError(f"Snapshot bundle missing required tables for {provider}: {prov_snaps}")
+        if not target_providers:
+            raise ValueError("No providers specified in snapshot_bundle or provider parameter")
 
-        # 2. Read exact pinned snapshots
-        pat_df = (
-            self.spark.read.option("snapshot-id", pat_snap)
-            .table("careflow_catalog.careflow_silver.patients")
-            .filter(F.col("provider") == provider)
-        )
-        obs_df = (
-            self.spark.read.option("snapshot-id", obs_snap)
-            .table("careflow_catalog.careflow_silver.observations")
-            .filter(F.col("provider") == provider)
-        )
+        # 2. Read and Union exact pinned snapshots across providers
+        pat_dfs = []
+        obs_dfs = []
+
+        for p in target_providers:
+            prov_snaps = snapshot_bundle.get(p, {})
+            pat_snap = prov_snaps.get("patients")
+            obs_snap = prov_snaps.get("observations")
+
+            if not pat_snap or not obs_snap:
+                raise ValueError(f"Snapshot bundle missing required tables for {p}: {prov_snaps}")
+
+            p_pat = (
+                self.spark.read.option("snapshot-id", pat_snap)
+                .table("careflow_catalog.careflow_silver.patients")
+                .filter(F.col("provider") == p)
+            )
+            p_obs = (
+                self.spark.read.option("snapshot-id", obs_snap)
+                .table("careflow_catalog.careflow_silver.observations")
+                .filter(F.col("provider") == p)
+            )
+            pat_dfs.append(p_pat)
+            obs_dfs.append(p_obs)
+
+        pat_df = pat_dfs[0]
+        for other in pat_dfs[1:]:
+            pat_df = pat_df.unionByName(other)
+
+        obs_df = obs_dfs[0]
+        for other in obs_dfs[1:]:
+            obs_df = obs_df.unionByName(other)
 
         # 3. Apply Adult Age Filter as of fixed reference date
         ref_dt = datetime.strptime(fixed_reference_date, "%Y-%m-%d")
@@ -90,13 +113,14 @@ class CohortJob:
         adults_df = pat_df.filter(
             (F.col("birth_date").isNotNull()) & (F.col("birth_date") <= cutoff_birth_date)
         ).select(
+            F.col("provider"),
             F.col("patient_key"),
             F.col("birth_date"),
             F.col("gender"),
             F.col("postal_code"),
         )
 
-        # 4. Filter Observations & Resolve Latest per Patient (Deterministic Tie-breaking)
+        # 4. Filter Observations & Resolve Latest per (provider, patient)
         lookback_start = (ref_dt - timedelta(days=lookback_days))
 
         target_obs_df = obs_df.filter(
@@ -108,11 +132,12 @@ class CohortJob:
         )
 
         # Window: latest effective_time, tie-break by source_key ASC
-        w = Window.partitionBy("patient_key").orderBy(F.col("effective_time").desc(), F.col("source_key").asc())
+        w = Window.partitionBy("provider", "patient_key").orderBy(F.col("effective_time").desc(), F.col("source_key").asc())
         latest_obs_df = (
             target_obs_df.withColumn("rn", F.row_number().over(w))
             .filter(F.col("rn") == 1)
             .select(
+                F.col("provider"),
                 F.col("patient_key"),
                 F.col("source_key").alias("observation_id"),
                 F.col("effective_time").alias("observation_time"),
@@ -123,7 +148,7 @@ class CohortJob:
         )
 
         # 5. Join Cohort
-        cohort_df = adults_df.join(latest_obs_df, on="patient_key", how="inner")
+        cohort_df = adults_df.join(latest_obs_df, on=["provider", "patient_key"], how="inner")
         rows = [r.asDict() for r in cohort_df.collect()]
         cohort_count = len(rows)
 
